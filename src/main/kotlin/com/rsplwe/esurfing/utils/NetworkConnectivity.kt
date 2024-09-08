@@ -63,7 +63,7 @@ fun detectConfig(): ConnectivityStatus {
             }
             val uri = Uri.from(States.ticketUrl)
             val userIp = uri.queryParameters()["wlanuserip"]?.first()
-            val acIp = uri.queryParameters()["wlanacip"]?.first()
+            val acIp = uri.queryParameters()["mscgip"]?.first()
             if (userIp.isNullOrEmpty() or acIp.isNullOrEmpty()) {
                 throw RuntimeException("Missing userIp or acIp")
             } else {
