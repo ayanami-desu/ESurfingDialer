@@ -45,7 +45,7 @@ java -jar client.jar -u ${DIALER_USER} -p ${DIALER_PASSWORD}
 
 
 ### 构建
-需要 Java 版本 >= 20
+需要 Java 版本 == 21
 ```bash
 ./gradlew shadowJar
 ```

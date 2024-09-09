@@ -38,6 +38,7 @@ class Client(private val options: Options) {
                             heartbeat(ticket)
                             logger.info("Next Retry: $keepRetry")
                             tick = System.currentTimeMillis()
+                            sleep(5000)
                         }
                     } else {
                         logger.info("The network has been connected.")
