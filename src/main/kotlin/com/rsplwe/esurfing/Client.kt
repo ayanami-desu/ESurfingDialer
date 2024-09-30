@@ -10,10 +10,11 @@ import com.rsplwe.esurfing.utils.checkVerifyCodeStatus
 import com.rsplwe.esurfing.utils.detectConfig
 import com.rsplwe.esurfing.utils.getTime
 import com.rsplwe.esurfing.utils.getVerifyCode
+import com.rsplwe.esurfing.utils.sleep
 import org.apache.log4j.Logger
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
-import java.lang.Thread.sleep
+
 
 class Client(private val options: Options) {
 
@@ -38,27 +39,31 @@ class Client(private val options: Options) {
                             heartbeat(ticket)
                             logger.info("Next Retry: $keepRetry")
                             tick = System.currentTimeMillis()
-                            sleep(5000)
+                            States.heartBeatSuccess = true
                         }
                     } else {
                         logger.info("The network has been connected.")
-                        sleep(5000)
+                    }
+                    if(States.heartBeatSuccess){
+                        sleep(keepRetry.toLong()+1) //保证时间间隔
+                    }else{
+                        sleep(6)
                     }
                 }
 
-                REQUIRE_AUTHORIZATION -> authorization()
+                REQUIRE_AUTHORIZATION -> {
+                    authorization()
+                    States.heartBeatSuccess = false
+                }
                 else -> {
-                    sleep(5000)
+                    sleep(6)
+                    States.heartBeatSuccess = false
                 }
             }
-            sleep(1000)
         }
     }
 
     private fun authorization() {
-        var code = if (options.smsCode.isBlank()) checkSMSVerify() else options.smsCode
-        println("SMS Code is: $code")
-
         session?.free()
         initSession()
         if ((session?.getSessionId() ?: 0) == 0.toLong()) {
@@ -73,14 +78,14 @@ class Client(private val options: Options) {
         ticket = getTicket()
         logger.info("Ticket: $ticket")
 
-        login(code)
+        login()
         if (keepUrl.isEmpty()) {
             logger.error("KeepUrl is empty.")
             session?.free()
             isRunning = false
         }
         tick = System.currentTimeMillis()
-        logger.info("The login has been authorized.")
+        logger.warn("The login has been authorized.")
     }
 
     private fun checkSMSVerify(): String {
@@ -92,6 +97,7 @@ class Client(private val options: Options) {
                 if (input != null) {
                     val code = input.trim()
                     if (code.isNotBlank()) {
+                        println("Code is: $code")
                         return code
                     }
                 }
@@ -162,6 +168,11 @@ class Client(private val options: Options) {
                 keepUrl = doc.getElementsByTag("keep-url").first()?.text() ?: ""
                 termUrl = doc.getElementsByTag("term-url").first()?.text() ?: ""
                 keepRetry = doc.getElementsByTag("keep-retry").first()?.text() ?: ""
+                // 检查keepRetry值是否正确，不正确则设置为默认值60
+                if (keepRetry.isBlank() || keepRetry.toInt() <= 0) {
+                    keepRetry = "60"
+                    logger.warn("KeepRetry value is incorrect, setting to default: $keepRetry")
+                }
 
                 logger.info("Keep Url: $keepUrl")
                 logger.info("Term Url: $termUrl")
@@ -194,6 +205,11 @@ class Client(private val options: Options) {
                 val data = session!!.decrypt(result.data.string())
                 val doc = Jsoup.parse(data, Parser.xmlParser())
                 keepRetry = doc.getElementsByTag("interval").first()?.text() ?: ""
+                // 检查keepRetry值是否正确，不正确则设置为默认值60
+                if (keepRetry.isBlank() || keepRetry.toInt() <= 0) {
+                    keepRetry = "60"
+                    logger.warn("KeepRetry value is incorrect, setting to default: $keepRetry")
+                }
             }
 
             is NetResult.Error -> {

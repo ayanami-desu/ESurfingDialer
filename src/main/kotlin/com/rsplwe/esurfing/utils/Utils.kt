@@ -4,6 +4,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Random
+import java.lang.Thread.sleep
 
 fun getTime(): String {
     val now = LocalDateTime.now(ZoneId.of("+8"))
@@ -33,4 +34,7 @@ fun randomMACAddress(): String {
         sb.append(String.format("%02x", b))
     }
     return sb.toString()
+}
+fun sleep(s: Long){
+    sleep(s*1000)
 }
